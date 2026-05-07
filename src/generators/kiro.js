@@ -1,16 +1,11 @@
-/**
- * Generate .kiro/steering/guidelines.md
- * Kiro uses steering documents in .kiro/steering/ for project context.
- */
-export function generateKiroSteering(guidelines, skills, config) {
-  const projectName = config.projectName || 'This project';
+export function generateKiroSteering(guidelines, skills) {
   const lines = [];
 
   lines.push('---');
   lines.push('inclusion: always');
   lines.push('---');
   lines.push('');
-  lines.push(`# ${projectName} — AI Guidelines`);
+  lines.push('# Project Guidelines');
   lines.push('');
 
   if (guidelines.length > 0) {
@@ -21,12 +16,13 @@ export function generateKiroSteering(guidelines, skills, config) {
   }
 
   if (skills.length > 0) {
-    lines.push('## Skills');
+    lines.push('## Available Skills');
     lines.push('');
-    lines.push('The following skills are available for this project:');
+    lines.push('The following skill files contain detailed patterns. Read the relevant SKILL.md before working on tasks in that domain:');
     lines.push('');
     for (const skill of skills) {
-      lines.push(`- **${skill.name}**: ${skill.description || skill.dir}`);
+      lines.push(`- **${skill.name}**: \`.ai/skills/${skill.dir}/SKILL.md\``);
+      if (skill.description) lines.push(`  ${skill.description}`);
     }
     lines.push('');
   }
