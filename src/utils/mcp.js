@@ -34,18 +34,17 @@ export function generateMcpJson(servers) {
 
   for (const [key, server] of Object.entries(servers)) {
     if (server.type === 'http') {
-      const args = ['-y', 'mcp-remote', server.url];
-      if (server.headers) {
-        for (const [k, v] of Object.entries(server.headers)) {
-          args.push('--header', `${k}: ${v}`);
-        }
-      }
-      mcpServers[key] = { command: 'npx', args };
+      mcpServers[key] = {
+        type: 'http',
+        url: server.url,
+        ...(server.headers ? { headers: server.headers } : {}),
+      };
     } else if (server.command) {
       mcpServers[key] = {
+        type: 'stdio',
         command: server.command,
         args: server.args || [],
-        ...(server.env ? { env: server.env } : {}),
+        env: server.env || {},
       };
     }
   }
