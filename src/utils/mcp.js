@@ -16,7 +16,9 @@ export function buildMcpServers(mcpConfig = {}, localConfig = {}) {
   }
 
   for (const [key, server] of Object.entries(userServers)) {
-    servers[key] = server;
+    if (!disabled.has(key)) {
+      servers[key] = server;
+    }
   }
 
   return servers;

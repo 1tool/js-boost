@@ -168,29 +168,41 @@ async function removeServer(mcpConfig) {
   }
 }
 
-async function toggleDefaults(localConfig) {
-  const keys = Object.keys(DEFAULT_MCP_SERVERS);
-  if (keys.length === 0) {
-    console.log(chalk.dim('  No built-in servers configured.'));
+async function toggleServers(mcpConfig, localConfig) {
+  const builtinKeys = Object.keys(DEFAULT_MCP_SERVERS);
+  const customKeys = Object.keys(mcpConfig.mcpServers || {});
+  const allKeys = [...builtinKeys, ...customKeys];
+
+  if (allKeys.length === 0) {
+    console.log(chalk.dim('  No servers to toggle.'));
     return;
   }
 
   const disabled = new Set(localConfig.disabledMcpServers || []);
 
-  const enabled = await multiselect({
-    message: 'Which built-in servers should be enabled?',
-    options: keys.map((k) => ({
+  const options = [
+    ...builtinKeys.map((k) => ({
       value: k,
       label: k,
-      hint: DEFAULT_MCP_SERVERS[k].url,
+      hint: `${DEFAULT_MCP_SERVERS[k].url}  (built-in)`,
     })),
-    initialValues: keys.filter((k) => !disabled.has(k)),
+    ...customKeys.map((k) => {
+      const srv = mcpConfig.mcpServers[k];
+      const addr = srv.type === 'http' ? srv.url : `${srv.command}${srv.args?.length ? ' ' + srv.args.join(' ') : ''}`;
+      return { value: k, label: k, hint: addr };
+    }),
+  ];
+
+  const enabled = await multiselect({
+    message: 'Which servers should be enabled locally?',
+    options,
+    initialValues: allKeys.filter((k) => !disabled.has(k)),
     required: false,
   });
   if (isCancel(enabled)) return;
 
   const enabledSet = new Set(enabled);
-  localConfig.disabledMcpServers = keys.filter((k) => !enabledSet.has(k));
+  localConfig.disabledMcpServers = allKeys.filter((k) => !enabledSet.has(k));
   console.log(`  ${chalk.green('✓')} Updated → ${chalk.dim('.js-boost.json')}`);
 }
 
@@ -210,13 +222,13 @@ export async function configureMcp(projectDir) {
     displayServers(mcpConfig, localConfig);
 
     const hasCustom = Object.keys(mcpConfig.mcpServers).length > 0;
-    const hasBuiltins = Object.keys(DEFAULT_MCP_SERVERS).length > 0;
+    const hasAny = hasCustom || Object.keys(DEFAULT_MCP_SERVERS).length > 0;
 
     const options = [
-      { value: 'add', label: 'Add a server' },
-      ...(hasCustom   ? [{ value: 'remove', label: 'Remove a server' }] : []),
-      ...(hasBuiltins ? [{ value: 'toggle', label: 'Disable / enable built-in servers' }] : []),
-      { value: 'done', label: 'Save and exit' },
+      { value: 'add',    label: 'Add a server' },
+      ...(hasCustom ? [{ value: 'remove', label: 'Remove a server' }] : []),
+      ...(hasAny    ? [{ value: 'toggle', label: 'Enable / disable servers locally' }] : []),
+      { value: 'done',   label: 'Save and exit' },
     ];
 
     const action = await select({ message: 'What would you like to do?', options });
@@ -229,7 +241,7 @@ export async function configureMcp(projectDir) {
     console.log('');
     if (action === 'add')    await addServer(mcpConfig);
     if (action === 'remove') await removeServer(mcpConfig);
-    if (action === 'toggle') await toggleDefaults(localConfig);
+    if (action === 'toggle') await toggleServers(mcpConfig, localConfig);
     console.log('');
   }
 

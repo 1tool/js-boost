@@ -72,28 +72,33 @@ npx @1tool/js-boost agents
 
 ### `@1tool/js-boost mcp`
 
-Interactive wizard to add, remove, or toggle MCP servers. Changes are saved to `js-boost.config.json` — run `generate` afterwards to apply them to agent files.
+Interactive wizard for managing MCP servers. Team server definitions are stored in `.ai/mcp/mcp.json` (committed). Per-developer enable/disable state is stored in `.js-boost.json` (gitignored). Run `generate` afterwards to apply changes to agent files.
 
 ```bash
 npx @1tool/js-boost mcp
 ```
 
-**Add a remote server:**
+The wizard offers three actions:
+
+**Add a remote server** — HTTP/SSE endpoint with optional auth headers:
 ```
-✔ Server key: my-api
-✔ Server type: Remote (HTTP / SSE url)
-✔ URL: https://my-mcp.com/mcp
-✔ Description (optional): Internal API tools
+✔ Server key     my-api
+✔ Server type    Remote (HTTP / SSE url)
+✔ URL            https://my-mcp.com/mcp
+✔ Headers        Authorization: Bearer YOUR_TOKEN_HERE
+✔ Description    Internal API tools
 ```
 
-**Add a local (stdio) server:**
+**Add a local server** — stdio process with optional args and env vars:
 ```
-✔ Server key: local-tools
-✔ Server type: Local (stdio process)
-✔ Command: node
-✔ Arguments: ./mcp-server.js --port 3000
-✔ Environment variables: API_KEY=secret,NODE_ENV=production
+✔ Server key              local-tools
+✔ Server type             Local (stdio process)
+✔ Command                 node
+✔ Arguments               ./mcp-server.js --port 3000
+✔ Environment variables   API_KEY=secret,NODE_ENV=production
 ```
+
+**Enable / disable servers locally** — multiselect over all configured servers. Unchecked servers are added to `disabledMcpServers` in `.js-boost.json` and excluded from your generated files without affecting teammates.
 
 ### `@1tool/js-boost generate`
 
@@ -144,42 +149,71 @@ During `init` (and `agents`), installed agents are pre-selected automatically ba
 
 ## Configuration
 
-**`.ai/mcp/mcp.json`** — team-wide, committed. Managed by `js-boost mcp`:
+### `.ai/mcp/mcp.json` — team MCP servers
+
+Committed to the repo. Defines the MCP servers available to the whole team. Managed by `js-boost mcp`.
 
 ```json
 {
   "mcpServers": {
-    "my-api": {
+    "my-remote": {
       "type": "http",
       "url": "https://my-mcp.com/mcp",
-      "headers": { "Authorization": "Bearer YOUR_TOKEN_HERE" }
+      "headers": {
+        "Authorization": "Bearer YOUR_TOKEN_HERE"
+      }
     },
-    "local-tools": {
+    "my-local": {
       "command": "node",
-      "args": ["./mcp-server.js"],
-      "env": { "API_KEY": "secret" }
+      "args": ["./mcp-server.js", "--port", "3000"],
+      "env": {
+        "API_KEY": "secret"
+      }
+    },
+    "npm-package": {
+      "command": "npx",
+      "args": ["-y", "@some/mcp-server"]
     }
   }
 }
 ```
 
-**`.js-boost.json`** — per-developer, gitignored. Managed by `js-boost init` / `js-boost agents`:
+Server types:
+
+| Field | When to use |
+|---|---|
+| `type: "http"` + `url` | Remote HTTP/SSE server |
+| `command` (no type) | Local stdio process |
+| `headers` | Auth headers for remote servers (e.g. `Authorization`) |
+| `args` | Command-line arguments |
+| `env` | Environment variables injected into the process |
+
+Remote servers are written differently per agent:
+
+| Agent file | Remote format |
+|---|---|
+| `.mcp.json` (Claude Code, Codex) | Wrapped in `mcp-remote` with `--header` args |
+| `.junie/mcp.json` | URL referenced directly |
+
+### `.js-boost.json` — per-developer config
+
+Gitignored. Created by `js-boost init`, updated by `js-boost agents` and `js-boost mcp`.
 
 ```json
 {
   "agents": ["claude_code", "cursor", "codex"],
   "guidelines": true,
   "skills": ["example-skill"],
-  "disabledMcpServers": []
+  "disabledMcpServers": ["my-remote"]
 }
 ```
 
-MCP servers are written to the right format per agent:
-
-| Agent | Format | Remote servers |
-|---|---|---|
-| Claude Code, Codex | `.mcp.json` | wrapped in `mcp-remote` |
-| Junie | `.junie/mcp.json` | referenced by URL directly |
+| Field | Description |
+|---|---|
+| `agents` | Which agents to generate files for |
+| `guidelines` | Set to `true` after first successful generate |
+| `skills` | Snapshot of skill names at last generate |
+| `disabledMcpServers` | Server keys to exclude from your generated files |
 
 ---
 
