@@ -1,0 +1,200 @@
+# ⚡ js-boost
+
+> Laravel Boost for JavaScript — generate agent files for Claude Code, Cursor, Junie, Codex, Copilot, Kiro, and more from a single `.ai/` source of truth.
+
+Instead of manually maintaining separate instruction files for each AI agent, you write your guidelines and skills once in `.ai/` and `js-boost` generates all the agent-specific files automatically.
+
+---
+
+## How it works
+
+```
+.ai/
+├── guidelines/
+│   ├── general.md       ← coding conventions
+│   └── testing.md       ← testing standards
+└── skills/
+    └── my-skill/
+        └── SKILL.md     ← on-demand skill (loaded when relevant)
+```
+
+Run `npx js-boost generate` and get the right file for each configured agent:
+
+| File | Agent |
+|---|---|
+| `AGENTS.md` | Amp, Codex, GitHub Copilot, Gemini, OpenCode |
+| `CLAUDE.md` | Claude Code |
+| `.mcp.json` | Claude Code + Codex |
+| `.junie/guidelines.md` + `.junie/mcp.json` | JetBrains Junie |
+| `.cursor/rules/js-boost.mdc` + `.cursorrules` | Cursor |
+| `.kiro/steering/guidelines.md` | Kiro |
+
+---
+
+## Quick Start
+
+```bash
+# 1. Scaffold .ai/ and select your agents
+npx js-boost init
+
+# 2. Edit guidelines and skills in .ai/
+
+# 3. Generate agent files
+npx js-boost generate
+
+# 4. (Optional) Watch mode — auto-regenerate on save
+npx js-boost watch
+```
+
+---
+
+## Commands
+
+### `js-boost init`
+
+Scaffolds the `.ai/` folder with placeholder guidelines and a starter skill. Prompts you to select which AI agents to configure and saves the selection to `js-boost.config.json`.
+
+```bash
+npx js-boost init
+npx js-boost init --force    # overwrite existing files
+npx js-boost init --dir ./my-project
+```
+
+### `js-boost agents`
+
+Re-run the agent selection prompt without re-scaffolding `.ai/`. Use this to add or remove agents after the initial setup.
+
+```bash
+npx js-boost agents
+```
+
+### `js-boost mcp`
+
+Interactive wizard to add, remove, or toggle MCP servers. Changes are saved to `js-boost.config.json` — run `generate` afterwards to apply them to agent files.
+
+```bash
+npx js-boost mcp
+```
+
+**Add a remote server:**
+```
+✔ Server key: my-api
+✔ Server type: Remote (HTTP / SSE url)
+✔ URL: https://my-mcp.com/mcp
+✔ Description (optional): Internal API tools
+```
+
+**Add a local (stdio) server:**
+```
+✔ Server key: local-tools
+✔ Server type: Local (stdio process)
+✔ Command: node
+✔ Arguments: ./mcp-server.js --port 3000
+✔ Environment variables: API_KEY=secret,NODE_ENV=production
+```
+
+### `js-boost generate`
+
+Reads `.ai/guidelines/*.md` and `.ai/skills/*/SKILL.md`, then generates files for all selected agents. Falls back to generating all supported formats if no agents are configured.
+
+```bash
+npx js-boost generate
+npx js-boost gen             # alias
+npx js-boost generate --verbose
+```
+
+### `js-boost watch`
+
+Watches `.ai/` for changes and regenerates automatically (debounced 300ms).
+
+```bash
+npx js-boost watch
+```
+
+### `js-boost status`
+
+Shows configured agents, guidelines, skills, MCP servers, and which files will be generated.
+
+```bash
+npx js-boost status
+```
+
+---
+
+## Supported Agents
+
+| Key | Agent | Auto-detected |
+|---|---|---|
+| `amp` | Amp | `amp` in PATH or `~/.amp` |
+| `claude_code` | Claude Code | `~/.claude` |
+| `codex` | Codex | `codex` in PATH |
+| `copilot` | GitHub Copilot | — |
+| `cursor` | Cursor | `~/.cursor` |
+| `gemini` | Gemini | — |
+| `junie` | JetBrains Junie | `.junie/` in project |
+| `kiro` | Kiro | `~/.kiro` |
+| `opencode` | OpenCode | `opencode` in PATH |
+
+During `init` (and `agents`), installed agents are pre-selected automatically based on what's detected on your system.
+
+---
+
+## Configuration
+
+`js-boost.config.json` is managed by the CLI commands (`init`, `agents`, `mcp`) and committed to your repo.
+
+```json
+{
+  "projectName": "my-app",
+  "projectDescription": "",
+  "agents": ["claude_code", "cursor", "codex"],
+  "mcpServers": {
+    "my-api": {
+      "type": "remote",
+      "url": "https://my-mcp.com/mcp",
+      "description": "Internal API tools"
+    },
+    "local-tools": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["./mcp-server.js"],
+      "env": { "API_KEY": "secret" }
+    }
+  },
+  "disableMcpServers": []
+}
+```
+
+MCP servers are written to the right format per agent:
+
+| Agent | Format | Remote servers |
+|---|---|---|
+| Claude Code, Codex | `.mcp.json` | wrapped in `mcp-remote` |
+| Junie | `.junie/mcp.json` | referenced by URL directly |
+
+---
+
+## Skills
+
+Skills in `.ai/skills/` use a `SKILL.md` with YAML frontmatter:
+
+```markdown
+---
+name: my-skill
+description: Use this skill when doing X.
+---
+
+# My Skill
+
+Steps, patterns, and examples...
+```
+
+- **Claude Code** loads skills on-demand based on the `description`
+- **Codex** supports `$skill-name` invocation and implicit matching
+- **Junie / Cursor / Kiro** receive a reference list pointing to each `SKILL.md`
+
+---
+
+## License
+
+MIT
