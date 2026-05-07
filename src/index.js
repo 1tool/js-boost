@@ -1,6 +1,6 @@
 import path from 'path';
 import chalk from 'chalk';
-import { readGuidelines, readSkills, readConfig, writeFile } from './utils/reader.js';
+import { readGuidelines, readSkills, readConfig, readMcpConfig, writeFile } from './utils/reader.js';
 import { buildMcpServers, generateMcpJson, generateJunieMcpJson } from './utils/mcp.js';
 import { AGENTS_MD_CONSUMERS, MCP_JSON_CONSUMERS } from './agents.js';
 import { generateAgentsMd } from './generators/agents.js';
@@ -33,7 +33,7 @@ export async function generate(projectDir, options = {}) {
   // 1. Read source files
   const guidelines = await readGuidelines(aiDir);
   const skills = await readSkills(aiDir);
-  const mcpServers = buildMcpServers(config);
+  const mcpServers = buildMcpServers(readMcpConfig(aiDir));
 
   if (guidelines.length === 0 && skills.length === 0) {
     log(chalk.yellow('  ⚠ No guidelines or skills found in .ai/'));

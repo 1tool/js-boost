@@ -75,6 +75,31 @@ export function readConfig(projectDir) {
 }
 
 /**
+ * Read .ai/mcp/mcp.json — MCP server definitions
+ * Returns { servers: {}, disabled: [] }
+ */
+export function readMcpConfig(aiDir) {
+  const mcpPath = path.join(aiDir, 'mcp', 'mcp.json');
+  if (!fs.existsSync(mcpPath)) return { servers: {}, disabled: [] };
+  try {
+    const parsed = JSON.parse(fs.readFileSync(mcpPath, 'utf8'));
+    return {
+      servers: parsed.servers || {},
+      disabled: parsed.disabled || [],
+    };
+  } catch {
+    return { servers: {}, disabled: [] };
+  }
+}
+
+/**
+ * Write .ai/mcp/mcp.json
+ */
+export function writeMcpConfig(aiDir, mcpConfig) {
+  writeFile(path.join(aiDir, 'mcp', 'mcp.json'), JSON.stringify(mcpConfig, null, 2));
+}
+
+/**
  * Ensure a directory exists
  */
 export function ensureDir(dirPath) {

@@ -88,7 +88,7 @@ program
   .option('--dir <path>', 'Project directory', process.cwd())
   .action(async (options) => {
     const projectDir = path.resolve(options.dir);
-    const { readGuidelines, readSkills, readConfig } = await import('./utils/reader.js');
+    const { readGuidelines, readSkills, readConfig, readMcpConfig } = await import('./utils/reader.js');
     const { buildMcpServers } = await import('./utils/mcp.js');
     const { AGENTS, AGENTS_MD_CONSUMERS, MCP_JSON_CONSUMERS } = await import('./agents.js');
     const aiDir = path.join(projectDir, '.ai');
@@ -96,7 +96,7 @@ program
 
     const guidelines = await readGuidelines(aiDir);
     const skills = await readSkills(aiDir);
-    const mcpServers = buildMcpServers(config);
+    const mcpServers = buildMcpServers(readMcpConfig(aiDir));
 
     const allAgentKeys = Object.keys(AGENTS);
     const activeAgents = new Set(config.agents ?? allAgentKeys);

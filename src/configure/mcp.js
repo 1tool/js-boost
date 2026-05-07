@@ -2,11 +2,11 @@ import path from 'path';
 import chalk from 'chalk';
 import { text, select, multiselect, isCancel } from '@clack/prompts';
 import { DEFAULT_MCP_SERVERS } from '../utils/mcp.js';
-import { readConfig, writeFile } from '../utils/reader.js';
+import { readMcpConfig, writeMcpConfig } from '../utils/reader.js';
 
-function displayServers(config) {
-  const userServers = config.mcpServers || {};
-  const disabled = new Set(config.disableMcpServers || []);
+function displayServers(mcpConfig) {
+  const userServers = mcpConfig.servers || {};
+  const disabled = new Set(mcpConfig.disabled || []);
   const builtinKeys = Object.keys(DEFAULT_MCP_SERVERS);
 
   if (builtinKeys.length > 0) {
@@ -34,13 +34,13 @@ function displayServers(config) {
   console.log('');
 }
 
-async function addServer(config) {
+async function addServer(mcpConfig) {
   const name = await text({
     message: 'Server key',
     placeholder: 'my-api',
     validate: (v) => {
       if (!v.trim()) return 'Key is required';
-      if ((config.mcpServers || {})[v.trim()]) return `"${v.trim()}" already exists`;
+      if ((mcpConfig.servers || {})[v.trim()]) return `"${v.trim()}" already exists`;
       if (DEFAULT_MCP_SERVERS[v.trim()]) return `"${v.trim()}" is a built-in — use "Toggle built-ins" to enable/disable it`;
       if (!/^[a-z0-9_-]+$/.test(v.trim())) return 'Use only lowercase letters, numbers, hyphens, underscores';
     },
@@ -72,7 +72,7 @@ async function addServer(config) {
     });
     if (isCancel(description)) return;
 
-    config.mcpServers[key] = {
+    mcpConfig.servers[key] = {
       type: 'remote',
       url: url.trim(),
       ...(description.trim() ? { description: description.trim() } : {}),
@@ -111,7 +111,7 @@ async function addServer(config) {
       }
     }
 
-    config.mcpServers[key] = {
+    mcpConfig.servers[key] = {
       type: 'stdio',
       command: command.trim(),
       ...(args.length ? { args } : {}),
@@ -122,8 +122,8 @@ async function addServer(config) {
   console.log(`  ${chalk.green('✓')} Added ${chalk.cyan(key)}`);
 }
 
-async function removeServer(config) {
-  const keys = Object.keys(config.mcpServers);
+async function removeServer(mcpConfig) {
+  const keys = Object.keys(mcpConfig.servers);
   if (keys.length === 0) {
     console.log(chalk.dim('  No custom servers to remove.'));
     return;
@@ -132,7 +132,7 @@ async function removeServer(config) {
   const toRemove = await multiselect({
     message: 'Select servers to remove',
     options: keys.map((k) => {
-      const srv = config.mcpServers[k];
+      const srv = mcpConfig.servers[k];
       const addr = srv.type === 'remote'
         ? srv.url
         : `${srv.command}${srv.args?.length ? ' ' + srv.args.join(' ') : ''}`;
@@ -143,7 +143,7 @@ async function removeServer(config) {
   if (isCancel(toRemove)) return;
 
   for (const k of toRemove) {
-    delete config.mcpServers[k];
+    delete mcpConfig.servers[k];
   }
 
   if (toRemove.length) {
@@ -151,14 +151,14 @@ async function removeServer(config) {
   }
 }
 
-async function toggleDefaults(config) {
+async function toggleDefaults(mcpConfig) {
   const keys = Object.keys(DEFAULT_MCP_SERVERS);
   if (keys.length === 0) {
     console.log(chalk.dim('  No built-in servers configured.'));
     return;
   }
 
-  const disabled = new Set(config.disableMcpServers || []);
+  const disabled = new Set(mcpConfig.disabled || []);
 
   const enabled = await multiselect({
     message: 'Which built-in servers should be enabled?',
@@ -173,14 +173,12 @@ async function toggleDefaults(config) {
   if (isCancel(enabled)) return;
 
   const enabledSet = new Set(enabled);
-  config.disableMcpServers = keys.filter((k) => !enabledSet.has(k));
+  mcpConfig.disabled = keys.filter((k) => !enabledSet.has(k));
 }
 
 export async function configureMcp(projectDir) {
-  const configPath = path.join(projectDir, 'js-boost.config.json');
-  const config = readConfig(projectDir);
-  config.mcpServers = config.mcpServers || {};
-  config.disableMcpServers = config.disableMcpServers || [];
+  const aiDir = path.join(projectDir, '.ai');
+  const mcpConfig = readMcpConfig(aiDir);
 
   console.log('');
   console.log(chalk.bold.blue('⚡ js-boost') + chalk.dim(' — MCP server configuration'));
@@ -189,9 +187,9 @@ export async function configureMcp(projectDir) {
   let running = true;
 
   while (running) {
-    displayServers(config);
+    displayServers(mcpConfig);
 
-    const hasCustom = Object.keys(config.mcpServers).length > 0;
+    const hasCustom = Object.keys(mcpConfig.servers).length > 0;
     const hasBuiltins = Object.keys(DEFAULT_MCP_SERVERS).length > 0;
 
     const options = [
@@ -209,15 +207,15 @@ export async function configureMcp(projectDir) {
     }
 
     console.log('');
-    if (action === 'add')    await addServer(config);
-    if (action === 'remove') await removeServer(config);
-    if (action === 'toggle') await toggleDefaults(config);
+    if (action === 'add')    await addServer(mcpConfig);
+    if (action === 'remove') await removeServer(mcpConfig);
+    if (action === 'toggle') await toggleDefaults(mcpConfig);
     console.log('');
   }
 
-  writeFile(configPath, JSON.stringify(config, null, 2));
+  writeMcpConfig(aiDir, mcpConfig);
   console.log('');
-  console.log(chalk.green('  ✓ Saved to js-boost.config.json'));
-  console.log(chalk.dim('  Run `js-boost generate` to apply changes to agent files.'));
+  console.log(chalk.green('  ✓ Saved to .ai/mcp/mcp.json'));
+  console.log(chalk.dim('  Run `@1tool/js-boost generate` to apply changes to agent files.'));
   console.log('');
 }

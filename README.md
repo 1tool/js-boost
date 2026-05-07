@@ -13,9 +13,11 @@ Instead of manually maintaining separate instruction files for each AI agent, yo
 ├── guidelines/
 │   ├── general.md       ← coding conventions
 │   └── testing.md       ← testing standards
-└── skills/
-    └── my-skill/
-        └── SKILL.md     ← on-demand skill (loaded when relevant)
+├── skills/
+│   └── my-skill/
+│       └── SKILL.md     ← on-demand skill (loaded when relevant)
+└── mcp/
+    └── mcp.json         ← MCP server definitions
 ```
 
 Run `npx @1tool/js-boost generate` and get the right file for each configured agent:
@@ -141,14 +143,11 @@ During `init` (and `agents`), installed agents are pre-selected automatically ba
 
 ## Configuration
 
-`js-boost.config.json` is managed by the CLI commands (`init`, `agents`, `mcp`) and committed to your repo.
+MCP server definitions live in `.ai/mcp/mcp.json` (managed by `js-boost mcp`):
 
 ```json
 {
-  "projectName": "my-app",
-  "projectDescription": "",
-  "agents": ["claude_code", "cursor", "codex"],
-  "mcpServers": {
+  "servers": {
     "my-api": {
       "type": "remote",
       "url": "https://my-mcp.com/mcp",
@@ -161,7 +160,17 @@ During `init` (and `agents`), installed agents are pre-selected automatically ba
       "env": { "API_KEY": "secret" }
     }
   },
-  "disableMcpServers": []
+  "disabled": []
+}
+```
+
+Agent selection and project metadata live in `js-boost.config.json` (managed by `init` / `agents`):
+
+```json
+{
+  "projectName": "my-app",
+  "projectDescription": "",
+  "agents": ["claude_code", "cursor", "codex"]
 }
 ```
 

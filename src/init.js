@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import chalk from 'chalk';
 import { multiselect, isCancel, cancel } from '@clack/prompts';
-import { writeFile } from './utils/reader.js';
+import { writeFile, writeMcpConfig } from './utils/reader.js';
 import { AGENTS } from './agents.js';
 import { detectInstalledAgents } from './utils/detect.js';
 
@@ -102,6 +102,13 @@ export async function init(projectDir, options = {}) {
     }
   }
 
+  // Create .ai/mcp/mcp.json if it doesn't exist yet
+  const mcpJsonPath = path.join(aiDir, 'mcp', 'mcp.json');
+  if (!fs.existsSync(mcpJsonPath) || force) {
+    writeMcpConfig(aiDir, { servers: {}, disabled: [] });
+    console.log(`  ${chalk.green('✓')} ${chalk.cyan('.ai/mcp/mcp.json')}`);
+  }
+
   // Create js-boost.config.json with defaults (or read existing)
   const configPath = path.join(projectDir, 'js-boost.config.json');
   let existingConfig = {};
@@ -116,8 +123,6 @@ export async function init(projectDir, options = {}) {
     projectName: existingConfig.projectName || path.basename(projectDir),
     projectDescription: existingConfig.projectDescription || '',
     agents: selectedAgents,
-    mcpServers: existingConfig.mcpServers || {},
-    disableMcpServers: existingConfig.disableMcpServers || [],
   };
 
   writeFile(configPath, JSON.stringify(config, null, 2));

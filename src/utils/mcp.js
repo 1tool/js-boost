@@ -8,9 +8,9 @@ export const DEFAULT_MCP_SERVERS = {
  * Build the MCP servers object, merging defaults with user-defined servers
  * from js-boost.config.json
  */
-export function buildMcpServers(config = {}) {
-  const userServers = config.mcpServers || {};
-  const disabledDefaults = config.disableMcpServers || [];
+export function buildMcpServers(mcpConfig = {}) {
+  const userServers = mcpConfig.servers || {};
+  const disabledDefaults = mcpConfig.disabled || [];
 
   const servers = {};
 
