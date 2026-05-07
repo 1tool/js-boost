@@ -2,7 +2,7 @@
 
 > Laravel Boost for JavaScript — generate agent files for Claude Code, Cursor, Junie, Codex, Copilot, Kiro, and more from a single `.ai/` source of truth.
 
-Instead of manually maintaining separate instruction files for each AI agent, you write your guidelines and skills once in `.ai/` and `js-boost` generates all the agent-specific files automatically.
+Instead of manually maintaining separate instruction files for each AI agent, you write your guidelines and skills once in `.ai/` and `@1tool/js-boost` generates all the agent-specific files automatically.
 
 ---
 
@@ -18,7 +18,7 @@ Instead of manually maintaining separate instruction files for each AI agent, yo
         └── SKILL.md     ← on-demand skill (loaded when relevant)
 ```
 
-Run `npx js-boost generate` and get the right file for each configured agent:
+Run `npx @1tool/js-boost generate` and get the right file for each configured agent:
 
 | File | Agent |
 |---|---|
@@ -35,45 +35,45 @@ Run `npx js-boost generate` and get the right file for each configured agent:
 
 ```bash
 # 1. Scaffold .ai/ and select your agents
-npx js-boost init
+npx @1tool/js-boost init
 
 # 2. Edit guidelines and skills in .ai/
 
 # 3. Generate agent files
-npx js-boost generate
+npx @1tool/js-boost generate
 
 # 4. (Optional) Watch mode — auto-regenerate on save
-npx js-boost watch
+npx @1tool/js-boost watch
 ```
 
 ---
 
 ## Commands
 
-### `js-boost init`
+### `@1tool/js-boost init`
 
 Scaffolds the `.ai/` folder with placeholder guidelines and a starter skill. Prompts you to select which AI agents to configure and saves the selection to `js-boost.config.json`.
 
 ```bash
-npx js-boost init
-npx js-boost init --force    # overwrite existing files
-npx js-boost init --dir ./my-project
+npx @1tool/js-boost init
+npx @1tool/js-boost init --force    # overwrite existing files
+npx @1tool/js-boost init --dir ./my-project
 ```
 
-### `js-boost agents`
+### `@1tool/js-boost agents`
 
 Re-run the agent selection prompt without re-scaffolding `.ai/`. Use this to add or remove agents after the initial setup.
 
 ```bash
-npx js-boost agents
+npx @1tool/js-boost agents
 ```
 
-### `js-boost mcp`
+### `@1tool/js-boost mcp`
 
 Interactive wizard to add, remove, or toggle MCP servers. Changes are saved to `js-boost.config.json` — run `generate` afterwards to apply them to agent files.
 
 ```bash
-npx js-boost mcp
+npx @1tool/js-boost mcp
 ```
 
 **Add a remote server:**
@@ -93,30 +93,30 @@ npx js-boost mcp
 ✔ Environment variables: API_KEY=secret,NODE_ENV=production
 ```
 
-### `js-boost generate`
+### `@1tool/js-boost generate`
 
 Reads `.ai/guidelines/*.md` and `.ai/skills/*/SKILL.md`, then generates files for all selected agents. Falls back to generating all supported formats if no agents are configured.
 
 ```bash
-npx js-boost generate
-npx js-boost gen             # alias
-npx js-boost generate --verbose
+npx @1tool/js-boost generate
+npx @1tool/js-boost gen             # alias
+npx @1tool/js-boost generate --verbose
 ```
 
-### `js-boost watch`
+### `@1tool/js-boost watch`
 
 Watches `.ai/` for changes and regenerates automatically (debounced 300ms).
 
 ```bash
-npx js-boost watch
+npx @1tool/js-boost watch
 ```
 
-### `js-boost status`
+### `@1tool/js-boost status`
 
 Shows configured agents, guidelines, skills, MCP servers, and which files will be generated.
 
 ```bash
-npx js-boost status
+npx @1tool/js-boost status
 ```
 
 ---

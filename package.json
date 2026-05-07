@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "type": "module",
   "bin": {
-    "js-boost": "./bin/js-boost.js"
+    "js-boost": "bin/js-boost.js"
   },
   "scripts": {
     "start": "node bin/js-boost.js"
