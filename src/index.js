@@ -1,6 +1,6 @@
 import path from 'path';
 import chalk from 'chalk';
-import { readGuidelines, readSkills, readConfig, readMcpConfig, writeFile } from './utils/reader.js';
+import { readGuidelines, readSkills, readLocalConfig, writeLocalConfig, readMcpConfig, writeFile } from './utils/reader.js';
 import { buildMcpServers, generateMcpJson, generateJunieMcpJson } from './utils/mcp.js';
 import { AGENTS_MD_CONSUMERS, MCP_JSON_CONSUMERS } from './agents.js';
 import { generateAgentsMd } from './generators/agents.js';
@@ -11,29 +11,43 @@ import { generateKiroSteering } from './generators/kiro.js';
 
 export async function generate(projectDir, options = {}) {
   const aiDir = path.join(projectDir, '.ai');
-  const config = readConfig(projectDir);
   const verbose = options.verbose ?? false;
-
-  // Determine active agents — fall back to all agents if none configured
-  const activeAgents = new Set(config.agents ?? Object.keys(
-    { amp: 1, claude_code: 1, codex: 1, copilot: 1, cursor: 1, gemini: 1, junie: 1, kiro: 1, opencode: 1 }
-  ));
-
-  const has = (key) => activeAgents.has(key);
-  const hasAny = (keys) => keys.some(k => activeAgents.has(k));
 
   const log = (msg) => console.log(msg);
   const info = (label, file) => log(`  ${chalk.green('✓')} ${chalk.dim(label.padEnd(30))} ${chalk.cyan(file)}`);
   const skip = (label, reason) => verbose && log(`  ${chalk.yellow('–')} ${chalk.dim(label.padEnd(30))} ${chalk.yellow(reason)}`);
 
+  // Resolve agents — flag (one-off) > local config > inline prompt
+  let localConfig = readLocalConfig(projectDir);
+  let activeAgentsList;
+  let isOneOff = false;
+
+  if (options.agents) {
+    activeAgentsList = options.agents.split(',').map(a => a.trim()).filter(Boolean);
+    isOneOff = true;
+  } else if (localConfig.agents?.length) {
+    activeAgentsList = localConfig.agents;
+  } else {
+    log('');
+    log(chalk.bold.blue('⚡ js-boost') + chalk.dim(' — first run setup'));
+    const { selectAgents } = await import('./init.js');
+    activeAgentsList = await selectAgents(projectDir, null);
+    localConfig.agents = activeAgentsList;
+    writeLocalConfig(projectDir, localConfig);
+  }
+
+  const activeAgents = new Set(activeAgentsList);
+  const has = (key) => activeAgents.has(key);
+  const hasAny = (keys) => keys.some(k => activeAgents.has(k));
+
   log('');
   log(chalk.bold.blue('⚡ js-boost') + chalk.dim(' — generating agent files'));
   log('');
 
-  // 1. Read source files
+  // Read source files
   const guidelines = await readGuidelines(aiDir);
   const skills = await readSkills(aiDir);
-  const mcpServers = buildMcpServers(readMcpConfig(aiDir));
+  const mcpServers = buildMcpServers(readMcpConfig(aiDir), localConfig);
 
   if (guidelines.length === 0 && skills.length === 0) {
     log(chalk.yellow('  ⚠ No guidelines or skills found in .ai/'));
@@ -41,15 +55,15 @@ export async function generate(projectDir, options = {}) {
     log('');
   } else {
     log(chalk.dim(`  Found ${guidelines.length} guideline(s), ${skills.length} skill(s), ${Object.keys(mcpServers).length} MCP server(s)`));
-    log(chalk.dim(`  Agents: ${[...activeAgents].join(', ')}`));
+    log(chalk.dim(`  Agents: ${activeAgentsList.join(', ')}`));
     log('');
   }
 
   const generatedFiles = [];
 
-  // 2. AGENTS.md — shared format for Codex, Copilot, Gemini, Amp, OpenCode
+  // AGENTS.md — Amp, Codex, Copilot, Gemini, OpenCode
   if (hasAny(AGENTS_MD_CONSUMERS)) {
-    const agentsMd = generateAgentsMd(guidelines, skills, mcpServers, config);
+    const agentsMd = generateAgentsMd(guidelines, skills, mcpServers, {});
     writeFile(path.join(projectDir, 'AGENTS.md'), agentsMd);
     info('AGENTS.md', 'AGENTS.md');
     generatedFiles.push('AGENTS.md');
@@ -57,9 +71,9 @@ export async function generate(projectDir, options = {}) {
     skip('AGENTS.md', 'no AGENTS.md consumers selected');
   }
 
-  // 3. CLAUDE.md — Claude Code
+  // CLAUDE.md — Claude Code
   if (has('claude_code')) {
-    const claudeMd = generateClaudeMd(guidelines, skills, mcpServers, config);
+    const claudeMd = generateClaudeMd(guidelines, skills, mcpServers, {});
     writeFile(path.join(projectDir, 'CLAUDE.md'), claudeMd);
     info('Claude Code', 'CLAUDE.md');
     generatedFiles.push('CLAUDE.md');
@@ -67,7 +81,7 @@ export async function generate(projectDir, options = {}) {
     skip('Claude Code', 'not selected');
   }
 
-  // 4. .mcp.json — Claude Code + Codex
+  // .mcp.json — Claude Code + Codex
   if (hasAny(MCP_JSON_CONSUMERS)) {
     const mcpJson = generateMcpJson(mcpServers);
     writeFile(path.join(projectDir, '.mcp.json'), mcpJson);
@@ -77,9 +91,9 @@ export async function generate(projectDir, options = {}) {
     skip('MCP', 'no MCP consumers selected');
   }
 
-  // 5. .junie/ — JetBrains Junie
+  // .junie/ — JetBrains Junie
   if (has('junie')) {
-    const junieGuidelines = generateJunieGuidelines(guidelines, skills, config);
+    const junieGuidelines = generateJunieGuidelines(guidelines, skills, {});
     writeFile(path.join(projectDir, '.junie', 'guidelines.md'), junieGuidelines);
     info('Junie guidelines', '.junie/guidelines.md');
     generatedFiles.push('.junie/guidelines.md');
@@ -92,14 +106,14 @@ export async function generate(projectDir, options = {}) {
     skip('Junie', 'not selected');
   }
 
-  // 6. Cursor — .cursor/rules/ + legacy .cursorrules
+  // Cursor
   if (has('cursor')) {
-    const cursorRules = generateCursorRules(guidelines, skills, config);
+    const cursorRules = generateCursorRules(guidelines, skills, {});
     writeFile(path.join(projectDir, '.cursor', 'rules', 'js-boost.mdc'), cursorRules);
     info('Cursor (modern)', '.cursor/rules/js-boost.mdc');
     generatedFiles.push('.cursor/rules/js-boost.mdc');
 
-    const cursorLegacy = generateCursorRulesLegacy(guidelines, skills, config);
+    const cursorLegacy = generateCursorRulesLegacy(guidelines, skills, {});
     writeFile(path.join(projectDir, '.cursorrules'), cursorLegacy);
     info('Cursor (legacy)', '.cursorrules');
     generatedFiles.push('.cursorrules');
@@ -107,9 +121,9 @@ export async function generate(projectDir, options = {}) {
     skip('Cursor', 'not selected');
   }
 
-  // 7. Kiro — .kiro/steering/guidelines.md
+  // Kiro
   if (has('kiro')) {
-    const kiroSteering = generateKiroSteering(guidelines, skills, config);
+    const kiroSteering = generateKiroSteering(guidelines, skills, {});
     writeFile(path.join(projectDir, '.kiro', 'steering', 'guidelines.md'), kiroSteering);
     info('Kiro', '.kiro/steering/guidelines.md');
     generatedFiles.push('.kiro/steering/guidelines.md');
@@ -120,6 +134,13 @@ export async function generate(projectDir, options = {}) {
   log('');
   log(chalk.green.bold(`  ✓ Generated ${generatedFiles.length} files successfully`));
   log('');
+
+  // Write state back to local config (skip for one-off --agents flag)
+  if (!isOneOff) {
+    localConfig.guidelines = true;
+    localConfig.skills = skills.map(s => s.name);
+    writeLocalConfig(projectDir, localConfig);
+  }
 
   return generatedFiles;
 }

@@ -5,7 +5,7 @@ import { generate } from './index.js';
 
 export function watch(projectDir) {
   const aiDir = path.join(projectDir, '.ai');
-  const configPath = path.join(projectDir, 'js-boost.config.json');
+  const configPath = path.join(projectDir, '.js-boost.json');
 
   console.log('');
   console.log(chalk.bold.blue('⚡ js-boost') + chalk.dim(' — watch mode'));

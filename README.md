@@ -97,12 +97,13 @@ npx @1tool/js-boost mcp
 
 ### `@1tool/js-boost generate`
 
-Reads `.ai/guidelines/*.md` and `.ai/skills/*/SKILL.md`, then generates files for all selected agents. Falls back to generating all supported formats if no agents are configured.
+Reads `.ai/guidelines/*.md` and `.ai/skills/*/SKILL.md`, then generates files for all selected agents. On first run (no `.js-boost.json`), prompts for agent selection inline.
 
 ```bash
 npx @1tool/js-boost generate
-npx @1tool/js-boost gen             # alias
-npx @1tool/js-boost generate --verbose
+npx @1tool/js-boost gen                              # alias
+npx @1tool/js-boost generate --verbose               # show skipped files
+npx @1tool/js-boost generate --agents claude_code,cursor  # CI one-off, not saved
 ```
 
 ### `@1tool/js-boost watch`
@@ -143,34 +144,33 @@ During `init` (and `agents`), installed agents are pre-selected automatically ba
 
 ## Configuration
 
-MCP server definitions live in `.ai/mcp/mcp.json` (managed by `js-boost mcp`):
+**`.ai/mcp/mcp.json`** — team-wide, committed. Managed by `js-boost mcp`:
 
 ```json
 {
-  "servers": {
+  "mcpServers": {
     "my-api": {
-      "type": "remote",
+      "type": "http",
       "url": "https://my-mcp.com/mcp",
-      "description": "Internal API tools"
+      "headers": { "Authorization": "Bearer YOUR_TOKEN_HERE" }
     },
     "local-tools": {
-      "type": "stdio",
       "command": "node",
       "args": ["./mcp-server.js"],
       "env": { "API_KEY": "secret" }
     }
-  },
-  "disabled": []
+  }
 }
 ```
 
-Agent selection and project metadata live in `js-boost.config.json` (managed by `init` / `agents`):
+**`.js-boost.json`** — per-developer, gitignored. Managed by `js-boost init` / `js-boost agents`:
 
 ```json
 {
-  "projectName": "my-app",
-  "projectDescription": "",
-  "agents": ["claude_code", "cursor", "codex"]
+  "agents": ["claude_code", "cursor", "codex"],
+  "guidelines": true,
+  "skills": ["example-skill"],
+  "disabledMcpServers": []
 }
 ```
 

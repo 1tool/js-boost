@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import chalk from 'chalk';
 import { multiselect, isCancel, cancel } from '@clack/prompts';
-import { writeFile, writeMcpConfig } from './utils/reader.js';
+import { writeFile, writeMcpConfig, writeLocalConfig } from './utils/reader.js';
 import { AGENTS } from './agents.js';
 import { detectInstalledAgents } from './utils/detect.js';
 
@@ -38,6 +38,15 @@ description: TODO: describe when the agent should use this skill.
 TODO: describe the steps, patterns, or conventions the agent should follow.
 `
 };
+
+function addToGitignore(projectDir, entry) {
+  const gitignorePath = path.join(projectDir, '.gitignore');
+  if (!fs.existsSync(gitignorePath)) return false;
+  const content = fs.readFileSync(gitignorePath, 'utf8');
+  if (content.split('\n').some(line => line.trim() === entry)) return false;
+  fs.appendFileSync(gitignorePath, `\n# js-boost local config\n${entry}\n`, 'utf8');
+  return true;
+}
 
 export async function selectAgents(projectDir, currentAgents = null) {
   const detected = detectInstalledAgents(projectDir);
@@ -102,31 +111,33 @@ export async function init(projectDir, options = {}) {
     }
   }
 
-  // Create .ai/mcp/mcp.json if it doesn't exist yet
+  // Create .ai/mcp/mcp.json
   const mcpJsonPath = path.join(aiDir, 'mcp', 'mcp.json');
   if (!fs.existsSync(mcpJsonPath) || force) {
-    writeMcpConfig(aiDir, { servers: {}, disabled: [] });
+    writeMcpConfig(aiDir, { mcpServers: {} });
     console.log(`  ${chalk.green('✓')} ${chalk.cyan('.ai/mcp/mcp.json')}`);
   }
 
-  // Create js-boost.config.json with defaults (or read existing)
-  const configPath = path.join(projectDir, 'js-boost.config.json');
-  let existingConfig = {};
-  if (fs.existsSync(configPath) && !force) {
-    try { existingConfig = JSON.parse(fs.readFileSync(configPath, 'utf8')); } catch {}
+  // Agent selection
+  const localConfigPath = path.join(projectDir, '.js-boost.json');
+  let existingLocal = {};
+  if (fs.existsSync(localConfigPath)) {
+    try { existingLocal = JSON.parse(fs.readFileSync(localConfigPath, 'utf8')); } catch {}
   }
 
-  // Agent selection
-  const selectedAgents = await selectAgents(projectDir, existingConfig.agents);
+  const selectedAgents = await selectAgents(projectDir, existingLocal.agents ?? null);
 
-  const config = {
-    projectName: existingConfig.projectName || path.basename(projectDir),
-    projectDescription: existingConfig.projectDescription || '',
+  writeLocalConfig(projectDir, {
     agents: selectedAgents,
-  };
+    disabledMcpServers: existingLocal.disabledMcpServers ?? [],
+  });
+  console.log(`  ${chalk.green('✓')} ${chalk.cyan('.js-boost.json')}`);
 
-  writeFile(configPath, JSON.stringify(config, null, 2));
-  console.log(`  ${chalk.green('✓')} ${chalk.cyan('js-boost.config.json')}`);
+  // Ensure .js-boost.json is gitignored
+  const added = addToGitignore(projectDir, '.js-boost.json');
+  if (added) {
+    console.log(`  ${chalk.green('✓')} ${chalk.cyan('.js-boost.json')} added to ${chalk.cyan('.gitignore')}`);
+  }
 
   console.log('');
   console.log(chalk.green.bold('  ✓ .ai/ folder initialized'));
@@ -134,6 +145,6 @@ export async function init(projectDir, options = {}) {
   console.log(chalk.dim('  Next steps:'));
   console.log(chalk.dim('  1. Edit .ai/guidelines/*.md with your project conventions'));
   console.log(chalk.dim('  2. Add skills in .ai/skills/<name>/SKILL.md'));
-  console.log(chalk.dim('  3. Run: npx js-boost generate'));
+  console.log(chalk.dim('  3. Run: npx @1tool/js-boost generate'));
   console.log('');
 }

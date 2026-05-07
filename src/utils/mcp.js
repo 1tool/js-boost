@@ -1,27 +1,20 @@
-/**
- * Default MCP servers pre-configured for js-boost
- */
-export const DEFAULT_MCP_SERVERS = {
-};
+export const DEFAULT_MCP_SERVERS = {};
 
 /**
- * Build the MCP servers object, merging defaults with user-defined servers
- * from js-boost.config.json
+ * Merge team servers (.ai/mcp/mcp.json) with per-developer disabled list (.js-boost.json)
  */
-export function buildMcpServers(mcpConfig = {}) {
-  const userServers = mcpConfig.servers || {};
-  const disabledDefaults = mcpConfig.disabled || [];
+export function buildMcpServers(mcpConfig = {}, localConfig = {}) {
+  const userServers = mcpConfig.mcpServers || {};
+  const disabled = new Set(localConfig.disabledMcpServers || []);
 
   const servers = {};
 
-  // Add default servers (unless disabled)
   for (const [key, server] of Object.entries(DEFAULT_MCP_SERVERS)) {
-    if (!disabledDefaults.includes(key)) {
+    if (!disabled.has(key)) {
       servers[key] = server;
     }
   }
 
-  // Merge user-defined servers (can override defaults)
   for (const [key, server] of Object.entries(userServers)) {
     servers[key] = server;
   }
@@ -30,24 +23,27 @@ export function buildMcpServers(mcpConfig = {}) {
 }
 
 /**
- * Generate .mcp.json (used by Claude Code and Codex)
- * Supports both stdio and remote (HTTP/SSE) server types
+ * Generate .mcp.json (Claude Code + Codex)
+ * - stdio: detected by presence of `command` (no type field)
+ * - remote: type === 'http', wrapped in mcp-remote, headers passed as --header args
  */
 export function generateMcpJson(servers) {
   const mcpServers = {};
 
   for (const [key, server] of Object.entries(servers)) {
-    if (server.type === 'stdio') {
+    if (server.type === 'http') {
+      const args = ['-y', 'mcp-remote', server.url];
+      if (server.headers) {
+        for (const [k, v] of Object.entries(server.headers)) {
+          args.push('--header', `${k}: ${v}`);
+        }
+      }
+      mcpServers[key] = { command: 'npx', args };
+    } else if (server.command) {
       mcpServers[key] = {
         command: server.command,
         args: server.args || [],
-        ...(server.env ? { env: server.env } : {})
-      };
-    } else if (server.type === 'remote') {
-      // Claude Code uses mcp-remote wrapper for HTTP/SSE servers
-      mcpServers[key] = {
-        command: 'npx',
-        args: ['-y', 'mcp-remote', server.url]
+        ...(server.env ? { env: server.env } : {}),
       };
     }
   }
@@ -56,21 +52,19 @@ export function generateMcpJson(servers) {
 }
 
 /**
- * Generate .junie/mcp.json (Junie format — supports URL directly)
+ * Generate .junie/mcp.json — remote servers referenced by URL directly
  */
 export function generateJunieMcpJson(servers) {
   const mcpServers = {};
 
   for (const [key, server] of Object.entries(servers)) {
-    if (server.type === 'stdio') {
+    if (server.type === 'http') {
+      mcpServers[key] = { url: server.url };
+    } else if (server.command) {
       mcpServers[key] = {
         command: server.command,
         args: server.args || [],
-        ...(server.env ? { env: server.env } : {})
-      };
-    } else if (server.type === 'remote') {
-      mcpServers[key] = {
-        url: server.url
+        ...(server.env ? { env: server.env } : {}),
       };
     }
   }
@@ -88,8 +82,8 @@ export function buildMcpMarkdownSection(servers) {
   for (const [key, server] of Object.entries(servers)) {
     lines.push(`### ${key}`);
     if (server.description) lines.push(`> ${server.description}`);
-    if (server.type === 'remote') lines.push(`- **URL:** \`${server.url}\``);
-    if (server.type === 'stdio') lines.push(`- **Command:** \`${server.command} ${(server.args || []).join(' ')}\``);
+    if (server.type === 'http') lines.push(`- **URL:** \`${server.url}\``);
+    if (server.command) lines.push(`- **Command:** \`${server.command} ${(server.args || []).join(' ')}\``);
     lines.push('');
   }
 

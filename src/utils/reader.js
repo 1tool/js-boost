@@ -41,7 +41,6 @@ export async function readSkills(aiDir) {
     const content = fs.readFileSync(fullPath, 'utf8').trim();
     const dir = path.dirname(file);
 
-    // Parse YAML frontmatter: ---\nname: ...\ndescription: ...\n---
     let name = dir;
     let description = '';
     const fmMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
@@ -52,7 +51,6 @@ export async function readSkills(aiDir) {
       if (nameMatch) name = nameMatch[1].trim();
       if (descMatch) description = descMatch[1].trim();
     } else {
-      // Fallback: try first heading
       const headingMatch = content.match(/^#+\s*(.+)$/m);
       if (headingMatch) name = headingMatch[1].trim();
     }
@@ -62,10 +60,11 @@ export async function readSkills(aiDir) {
 }
 
 /**
- * Read js-boost.config.json if it exists
+ * Read .js-boost.json — per-developer local config (gitignored)
+ * Returns { agents, guidelines, skills, disabledMcpServers }
  */
-export function readConfig(projectDir) {
-  const configPath = path.join(projectDir, 'js-boost.config.json');
+export function readLocalConfig(projectDir) {
+  const configPath = path.join(projectDir, '.js-boost.json');
   if (!fs.existsSync(configPath)) return {};
   try {
     return JSON.parse(fs.readFileSync(configPath, 'utf8'));
@@ -75,20 +74,24 @@ export function readConfig(projectDir) {
 }
 
 /**
- * Read .ai/mcp/mcp.json — MCP server definitions
- * Returns { servers: {}, disabled: [] }
+ * Write .js-boost.json
+ */
+export function writeLocalConfig(projectDir, config) {
+  writeFile(path.join(projectDir, '.js-boost.json'), JSON.stringify(config, null, 2));
+}
+
+/**
+ * Read .ai/mcp/mcp.json — team MCP server definitions
+ * Returns { mcpServers: {} }
  */
 export function readMcpConfig(aiDir) {
   const mcpPath = path.join(aiDir, 'mcp', 'mcp.json');
-  if (!fs.existsSync(mcpPath)) return { servers: {}, disabled: [] };
+  if (!fs.existsSync(mcpPath)) return { mcpServers: {} };
   try {
     const parsed = JSON.parse(fs.readFileSync(mcpPath, 'utf8'));
-    return {
-      servers: parsed.servers || {},
-      disabled: parsed.disabled || [],
-    };
+    return { mcpServers: parsed.mcpServers || {} };
   } catch {
-    return { servers: {}, disabled: [] };
+    return { mcpServers: {} };
   }
 }
 
