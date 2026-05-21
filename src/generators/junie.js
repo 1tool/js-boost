@@ -1,4 +1,5 @@
-export function generateJunieGuidelines(guidelines, skills) {
+export function generateJunieGuidelines(guidelines, skills, options = {}) {
+  const skillBasePath = options.skillBasePath || '.agents/skills';
   const sections = [];
 
   sections.push('# Project Guidelines');
@@ -17,7 +18,7 @@ export function generateJunieGuidelines(guidelines, skills) {
     sections.push('The following skill files contain detailed patterns. Read the relevant SKILL.md before working on tasks in that domain:');
     sections.push('');
     for (const skill of skills) {
-      sections.push(`- **${skill.name}**: \`.ai/skills/${skill.dir}/SKILL.md\``);
+      sections.push(`- **${skill.name}**: \`${skillBasePath}/${skill.dir}/SKILL.md\``);
       if (skill.description) sections.push(`  ${skill.description}`);
     }
     sections.push('');

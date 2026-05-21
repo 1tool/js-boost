@@ -24,6 +24,8 @@ Run `npx @1tool/js-boost generate` and get the right file for each configured ag
 
 | File | Agent |
 |---|---|
+| `.claude/skills/` | Claude Code skill auto-registration |
+| `.agents/skills/` | Shared skill auto-registration for non-Claude agents |
 | `AGENTS.md` | Amp, Codex, GitHub Copilot, Gemini, OpenCode |
 | `CLAUDE.md` | Claude Code |
 | `.mcp.json` | Claude Code + Codex |
@@ -102,7 +104,7 @@ The wizard offers three actions:
 
 ### `@1tool/js-boost generate`
 
-Reads `.ai/guidelines/*.md` and `.ai/skills/*/SKILL.md`, then generates files for all selected agents. On first run (no `.js-boost.json`), prompts for agent selection inline.
+Reads `.ai/guidelines/*.md` and `.ai/skills/*/SKILL.md`, copies skills into agent-visible registries, then generates files for all selected agents. On first run (no `.js-boost.json`), prompts for agent selection inline.
 
 ```bash
 npx @1tool/js-boost generate
@@ -233,8 +235,9 @@ Steps, patterns, and examples...
 ```
 
 - **Claude Code** loads skills on-demand based on the `description`
-- **Codex** supports `$skill-name` invocation and implicit matching
-- **Junie / Cursor / Kiro** receive a reference list pointing to each `SKILL.md`
+- During generation, skills are copied to `.claude/skills/` for Claude Code and `.agents/skills/` for all other selected agents
+- **Claude Code** references `.claude/skills/<name>/SKILL.md`
+- **Codex** and other non-Claude agents reference `.agents/skills/<name>/SKILL.md`
 
 ---
 

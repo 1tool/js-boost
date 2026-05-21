@@ -1,6 +1,7 @@
 import { buildMcpMarkdownSection } from '../utils/mcp.js';
 
-export function generateAgentsMd(guidelines, skills, mcpServers) {
+export function generateAgentsMd(guidelines, skills, mcpServers, options = {}) {
+  const skillBasePath = options.skillBasePath || '.agents/skills';
   const sections = [];
 
   sections.push('# Project Guidelines');
@@ -23,13 +24,13 @@ export function generateAgentsMd(guidelines, skills, mcpServers) {
   if (skills.length > 0) {
     sections.push('## Agent Skills');
     sections.push('');
-    sections.push('The following skills are available in `.ai/skills/`. Load a skill when the task matches its description.');
+    sections.push(`The following skills are registered in \`${skillBasePath}/\`. Load a skill when the task matches its description.`);
     sections.push('');
 
     for (const skill of skills) {
       sections.push(`### ${skill.name}`);
       if (skill.description) sections.push(`${skill.description}`);
-      sections.push(`- **Skill file:** \`.ai/skills/${skill.dir}/SKILL.md\``);
+      sections.push(`- **Skill file:** \`${skillBasePath}/${skill.dir}/SKILL.md\``);
       sections.push('');
     }
   }

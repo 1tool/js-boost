@@ -7,7 +7,8 @@ import { buildMcpMarkdownSection } from '../utils/mcp.js';
  * guidelines content here (Claude benefits from having everything upfront),
  * plus Claude-specific directives for loading skills.
  */
-export function generateClaudeMd(guidelines, skills, mcpServers) {
+export function generateClaudeMd(guidelines, skills, mcpServers, options = {}) {
+  const skillBasePath = options.skillBasePath || '.claude/skills';
   const sections = [];
 
   sections.push('# Project Guidelines');
@@ -23,7 +24,7 @@ export function generateClaudeMd(guidelines, skills, mcpServers) {
     sections.push('');
     for (const skill of skills) {
       sections.push(`- **${skill.name}** — ${skill.description || 'see SKILL.md'}`);
-      sections.push(`  - Load: \`.ai/skills/${skill.dir}/SKILL.md\``);
+      sections.push(`  - Load: \`${skillBasePath}/${skill.dir}/SKILL.md\``);
     }
     sections.push('');
     sections.push('---');

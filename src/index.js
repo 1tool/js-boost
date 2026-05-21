@@ -1,6 +1,6 @@
 import path from 'path';
 import chalk from 'chalk';
-import { readGuidelines, readSkills, readLocalConfig, writeLocalConfig, readMcpConfig, writeFile } from './utils/reader.js';
+import { readGuidelines, readSkills, readLocalConfig, writeLocalConfig, readMcpConfig, writeFile, syncDir } from './utils/reader.js';
 import { buildMcpServers, generateMcpJson, generateJunieMcpJson } from './utils/mcp.js';
 import { AGENTS_MD_CONSUMERS, MCP_JSON_CONSUMERS } from './agents.js';
 import { generateAgentsMd } from './generators/agents.js';
@@ -39,6 +39,7 @@ export async function generate(projectDir, options = {}) {
   const activeAgents = new Set(activeAgentsList);
   const has = (key) => activeAgents.has(key);
   const hasAny = (keys) => keys.some(k => activeAgents.has(k));
+  const hasNonClaudeAgent = activeAgentsList.some((agent) => agent !== 'claude_code');
 
   log('');
   log(chalk.bold.blue('⚡ js-boost') + chalk.dim(' — generating agent files'));
@@ -60,10 +61,11 @@ export async function generate(projectDir, options = {}) {
   }
 
   const generatedFiles = [];
+  const sourceSkillsDir = path.join(aiDir, 'skills');
 
   // AGENTS.md — Amp, Codex, Copilot, Gemini, OpenCode
   if (hasAny(AGENTS_MD_CONSUMERS)) {
-    const agentsMd = generateAgentsMd(guidelines, skills, mcpServers, {});
+    const agentsMd = generateAgentsMd(guidelines, skills, mcpServers, { skillBasePath: '.agents/skills' });
     writeFile(path.join(projectDir, 'AGENTS.md'), agentsMd);
     info('AGENTS.md', 'AGENTS.md');
     generatedFiles.push('AGENTS.md');
@@ -73,7 +75,15 @@ export async function generate(projectDir, options = {}) {
 
   // CLAUDE.md — Claude Code
   if (has('claude_code')) {
-    const claudeMd = generateClaudeMd(guidelines, skills, mcpServers, {});
+    const copied = syncDir(sourceSkillsDir, path.join(projectDir, '.claude', 'skills'));
+    if (copied) {
+      info('Claude skills', '.claude/skills');
+      generatedFiles.push('.claude/skills');
+    } else {
+      skip('Claude skills', 'no .ai/skills directory found');
+    }
+
+    const claudeMd = generateClaudeMd(guidelines, skills, mcpServers, { skillBasePath: '.claude/skills' });
     writeFile(path.join(projectDir, 'CLAUDE.md'), claudeMd);
     info('Claude Code', 'CLAUDE.md');
     generatedFiles.push('CLAUDE.md');
@@ -92,8 +102,18 @@ export async function generate(projectDir, options = {}) {
   }
 
   // .junie/ — JetBrains Junie
+  if (hasNonClaudeAgent) {
+    const copied = syncDir(sourceSkillsDir, path.join(projectDir, '.agents', 'skills'));
+    if (copied) {
+      info('Shared agent skills', '.agents/skills');
+      generatedFiles.push('.agents/skills');
+    } else {
+      skip('Shared agent skills', 'no .ai/skills directory found');
+    }
+  }
+
   if (has('junie')) {
-    const junieGuidelines = generateJunieGuidelines(guidelines, skills, {});
+    const junieGuidelines = generateJunieGuidelines(guidelines, skills, { skillBasePath: '.agents/skills' });
     writeFile(path.join(projectDir, '.junie', 'guidelines.md'), junieGuidelines);
     info('Junie guidelines', '.junie/guidelines.md');
     generatedFiles.push('.junie/guidelines.md');
@@ -108,12 +128,12 @@ export async function generate(projectDir, options = {}) {
 
   // Cursor
   if (has('cursor')) {
-    const cursorRules = generateCursorRules(guidelines, skills, {});
+    const cursorRules = generateCursorRules(guidelines, skills, { skillBasePath: '.agents/skills' });
     writeFile(path.join(projectDir, '.cursor', 'rules', 'js-boost.mdc'), cursorRules);
     info('Cursor (modern)', '.cursor/rules/js-boost.mdc');
     generatedFiles.push('.cursor/rules/js-boost.mdc');
 
-    const cursorLegacy = generateCursorRulesLegacy(guidelines, skills, {});
+    const cursorLegacy = generateCursorRulesLegacy(guidelines, skills, { skillBasePath: '.agents/skills' });
     writeFile(path.join(projectDir, '.cursorrules'), cursorLegacy);
     info('Cursor (legacy)', '.cursorrules');
     generatedFiles.push('.cursorrules');
@@ -123,7 +143,7 @@ export async function generate(projectDir, options = {}) {
 
   // Kiro
   if (has('kiro')) {
-    const kiroSteering = generateKiroSteering(guidelines, skills, {});
+    const kiroSteering = generateKiroSteering(guidelines, skills, { skillBasePath: '.agents/skills' });
     writeFile(path.join(projectDir, '.kiro', 'steering', 'guidelines.md'), kiroSteering);
     info('Kiro', '.kiro/steering/guidelines.md');
     generatedFiles.push('.kiro/steering/guidelines.md');

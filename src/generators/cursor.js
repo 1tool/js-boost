@@ -1,4 +1,5 @@
-export function generateCursorRules(guidelines, skills) {
+export function generateCursorRules(guidelines, skills, options = {}) {
+  const skillBasePath = options.skillBasePath || '.agents/skills';
   const sections = [];
 
   sections.push('---');
@@ -21,7 +22,7 @@ export function generateCursorRules(guidelines, skills) {
     sections.push('## Available Skills');
     sections.push('');
     for (const skill of skills) {
-      sections.push(`- **${skill.name}**: \`.ai/skills/${skill.dir}/SKILL.md\``);
+      sections.push(`- **${skill.name}**: \`${skillBasePath}/${skill.dir}/SKILL.md\``);
       if (skill.description) sections.push(`  ${skill.description}`);
     }
     sections.push('');
@@ -30,7 +31,8 @@ export function generateCursorRules(guidelines, skills) {
   return sections.join('\n');
 }
 
-export function generateCursorRulesLegacy(guidelines, skills) {
+export function generateCursorRulesLegacy(guidelines, skills, options = {}) {
+  const skillBasePath = options.skillBasePath || '.agents/skills';
   const sections = [];
 
   sections.push('# Project Guidelines');
@@ -47,7 +49,7 @@ export function generateCursorRulesLegacy(guidelines, skills) {
     sections.push('## Skills');
     sections.push('');
     for (const skill of skills) {
-      sections.push(`- **${skill.name}**: .ai/skills/${skill.dir}/SKILL.md`);
+      sections.push(`- **${skill.name}**: ${skillBasePath}/${skill.dir}/SKILL.md`);
       if (skill.description) sections.push(`  ${skill.description}`);
     }
   }

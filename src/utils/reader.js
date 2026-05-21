@@ -118,3 +118,20 @@ export function writeFile(filePath, content) {
   ensureDir(path.dirname(filePath));
   fs.writeFileSync(filePath, content, 'utf8');
 }
+
+/**
+ * Sync a directory by replacing the destination with the current source contents.
+ */
+export function syncDir(sourceDir, targetDir) {
+  if (fs.existsSync(targetDir)) {
+    fs.rmSync(targetDir, { recursive: true, force: true });
+  }
+
+  if (!fs.existsSync(sourceDir)) {
+    return false;
+  }
+
+  ensureDir(path.dirname(targetDir));
+  fs.cpSync(sourceDir, targetDir, { recursive: true });
+  return true;
+}

@@ -100,6 +100,7 @@ program
     const activeAgents = new Set(localConfig.agents ?? allAgentKeys);
     const has = (key) => activeAgents.has(key);
     const hasAny = (keys) => keys.some(k => activeAgents.has(k));
+    const hasNonClaudeAgent = [...activeAgents].some((key) => key !== 'claude_code');
 
     console.log('');
     console.log(chalk.bold.blue('⚡ js-boost') + chalk.dim(' — status'));
@@ -144,6 +145,8 @@ program
     // Will generate
     console.log(chalk.bold('  Will generate:'));
     const willGenerate = [
+      has('claude_code') && skills.length > 0 && ['.claude/skills/',                     'Claude Code skill registry'],
+      hasNonClaudeAgent && skills.length > 0 && ['.agents/skills/',                     'Shared skill registry for non-Claude agents'],
       hasAny(AGENTS_MD_CONSUMERS) && ['AGENTS.md',                              'Amp, Codex, Copilot, Gemini, OpenCode'],
       has('claude_code')          && ['CLAUDE.md',                              'Claude Code'],
       hasAny(MCP_JSON_CONSUMERS)  && ['.mcp.json',                              'Claude Code + Codex'],
