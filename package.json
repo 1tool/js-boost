@@ -1,6 +1,6 @@
 {
   "name": "@1tool/js-boost",
-  "version": "1.3.2",
+  "version": "1.4.0",
   "description": "Laravel Boost-inspired CLI for JavaScript projects — generates agent files from your .ai/ folder",
   "main": "src/index.js",
   "type": "module",

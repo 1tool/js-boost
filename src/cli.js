@@ -8,7 +8,7 @@ import { watch } from './watch.js';
 program
   .name('js-boost')
   .description('Generate agent files from your .ai/ folder')
-  .version('1.2.0');
+  .version('1.4.0');
 
 // ─── js-boost init ───────────────────────────────────────────────────────────
 program
