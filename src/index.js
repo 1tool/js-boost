@@ -2,6 +2,7 @@ import path from 'path';
 import chalk from 'chalk';
 import { readGuidelines, readSkills, readLocalConfig, writeLocalConfig, readMcpConfig, writeFile, syncDir } from './utils/reader.js';
 import { buildMcpServers, generateMcpJson, generateJunieMcpJson } from './utils/mcp.js';
+import { writeCodexConfig } from './utils/codex.js';
 import { AGENTS_MD_CONSUMERS, MCP_JSON_CONSUMERS } from './agents.js';
 import { generateAgentsMd } from './generators/agents.js';
 import { generateClaudeMd } from './generators/claude.js';
@@ -91,14 +92,26 @@ export async function generate(projectDir, options = {}) {
     skip('Claude Code', 'not selected');
   }
 
-  // .mcp.json — Claude Code + Codex
+  // .mcp.json — Claude Code
   if (hasAny(MCP_JSON_CONSUMERS)) {
     const mcpJson = generateMcpJson(mcpServers);
     writeFile(path.join(projectDir, '.mcp.json'), mcpJson);
-    info('MCP (Claude/Codex)', '.mcp.json');
+    info('Claude MCP', '.mcp.json');
     generatedFiles.push('.mcp.json');
   } else {
     skip('MCP', 'no MCP consumers selected');
+  }
+
+  // .codex/config.toml — Codex
+  if (has('codex') && Object.keys(mcpServers).length > 0) {
+    const { content } = writeCodexConfig(projectDir, mcpServers);
+    writeFile(path.join(projectDir, '.codex', 'config.toml'), content);
+    info('Codex MCP', '.codex/config.toml');
+    generatedFiles.push('.codex/config.toml');
+  } else if (has('codex')) {
+    skip('Codex MCP', 'no MCP servers configured');
+  } else {
+    skip('Codex MCP', 'not selected');
   }
 
   // .junie/ — JetBrains Junie

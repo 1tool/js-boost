@@ -15,7 +15,7 @@ export const AGENTS = {
     key: 'codex',
     name: 'Codex',
     hint: 'by OpenAI',
-    generates: ['AGENTS.md', '.mcp.json'],
+    generates: ['AGENTS.md', '.codex/config.toml'],
   },
   copilot: {
     key: 'copilot',
@@ -59,4 +59,4 @@ export const AGENTS = {
 export const AGENTS_MD_CONSUMERS = ['amp', 'codex', 'copilot', 'gemini', 'opencode'];
 
 /** Agents that consume .mcp.json */
-export const MCP_JSON_CONSUMERS = ['claude_code', 'codex'];
+export const MCP_JSON_CONSUMERS = ['claude_code'];

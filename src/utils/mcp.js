@@ -25,9 +25,9 @@ export function buildMcpServers(mcpConfig = {}, localConfig = {}) {
 }
 
 /**
- * Generate .mcp.json (Claude Code + Codex)
+ * Generate .mcp.json (Claude Code)
  * - stdio: detected by presence of `command` (no type field)
- * - remote: type === 'http', wrapped in mcp-remote, headers passed as --header args
+ * - remote: type === 'http', emitted with `url` and optional `headers`
  */
 export function generateMcpJson(servers) {
   const mcpServers = {};

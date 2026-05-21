@@ -28,7 +28,8 @@ Run `npx @1tool/js-boost generate` and get the right file for each configured ag
 | `.agents/skills/` | Shared skill auto-registration for non-Claude agents |
 | `AGENTS.md` | Amp, Codex, GitHub Copilot, Gemini, OpenCode |
 | `CLAUDE.md` | Claude Code |
-| `.mcp.json` | Claude Code + Codex |
+| `.mcp.json` | Claude Code |
+| `.codex/config.toml` | Codex MCP registration |
 | `.junie/guidelines.md` + `.junie/mcp.json` | JetBrains Junie |
 | `.cursor/rules/js-boost.mdc` + `.cursorrules` | Cursor |
 | `.kiro/steering/guidelines.md` | Kiro |
@@ -194,7 +195,8 @@ Remote servers are written differently per agent:
 
 | Agent file | Remote format |
 |---|---|
-| `.mcp.json` (Claude Code, Codex) | Wrapped in `mcp-remote` with `--header` args |
+| `.mcp.json` (Claude Code) | JSON `type: "http"` entry with optional `headers` |
+| `.codex/config.toml` (Codex) | TOML `[mcp_servers.<name>]` entry with `url` and optional `http_headers` |
 | `.junie/mcp.json` | URL referenced directly |
 
 ### `.js-boost.json` — per-developer config

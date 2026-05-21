@@ -20,6 +20,7 @@ export function watch(projectDir) {
 
   const watcher = chokidar.watch([
     path.join(aiDir, '**', '*.md'),
+    path.join(aiDir, 'mcp', 'mcp.json'),
     configPath,
   ], {
     ignoreInitial: true,
